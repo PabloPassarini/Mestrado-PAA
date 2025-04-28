@@ -17,7 +17,8 @@ class SimpleStack:
     def pop(self):
         if self.is_empty():
             raise IndexError("Pop from empty stack")
-        elemento = self._data[self._ult]
+        elemento = self.get_top()
+        self._data = self._data[:self._ult-1]
         self._ult -= 1
         return elemento
     
@@ -25,16 +26,69 @@ class SimpleStack:
         if self.is_empty(): raise IndexError("Top from empty stack")
         return self._data[self._ult]
 
+    def reverse_string(self):
+        reverse_str = SimpleStack()
+        for i in range(self._ult , -1, -1):
+            reverse_str.push(self._data[i])
+        
+        return reverse_str.get_stack()
 
-
-
+    def is_balanced(self):
+        brackets = SimpleStack()
+        pares = {')': '(', ']': '[', '}': '{'}
+        if self.is_empty(): raise IndexError("Balanced Parentheses from empty stack")
+        for i in range(self._ult):
+            char = self._data[i]
+            if char in '([{':
+                brackets.push(char)
+            elif char in ')]}':
+                if brackets.is_empty():
+                    return False
+                
+                primeiro = brackets.top()
+                if pares[char] != primeiro:
+                    return False
+        
+        return True
 
 s = SimpleStack()
 print(s.is_empty())
 s.push(10)
 s.push(20)
 s.push(30)
+print(s.reverse_string())
+print(s.get_stack())
 print(s.is_empty())
 print(s.pop())
-print(s.get_stack())
+
 print(s.top())
+
+
+
+s2 = SimpleStack()
+s2.push('(')
+s2.push('[')
+s2.push(']')
+s2.push(')')
+print(s2.is_balanced())  # True
+
+s2 = SimpleStack()
+s2.push('(')
+s2.push('[')
+s2.push(')')
+s2.push(']')
+
+print(s2.is_balanced())  # False
+
+
+s2 = SimpleStack()
+s2.push('[')
+s2.push('(')
+s2.push(']')
+s2.push(')')
+print(s2.is_balanced())  # False
+
+s2 = SimpleStack()
+s2.push('(')
+s2.push(')')
+print(s2.is_balanced())  # True
