@@ -50,6 +50,8 @@ class SimpleStack:
                     return False
         
         return True
+    
+    
 
 s = SimpleStack()
 print(s.is_empty())
