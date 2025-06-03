@@ -1,8 +1,6 @@
 def sqrt_binary(n, low=0, high=None):
-    if high is None:
-        high = n
-    if low > high:
-        return high
+    if high is None: high = n
+    if low > high: return high
     mid = (low + high) // 2
     if mid * mid == n:
         return mid

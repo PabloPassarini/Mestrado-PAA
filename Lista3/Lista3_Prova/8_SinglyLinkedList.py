@@ -2,7 +2,6 @@ class Node:
     def __init__(self, value):
         self.value = value
         self.next = None
-
 class SinglyLinkedList:
     def __init__(self):
         self.head = None
@@ -35,7 +34,6 @@ class SinglyLinkedList:
             atual = atual.next
         if atual.next:
             atual.next = atual.next.next
-
 
     def search(self, value):
         atual = self.head
@@ -79,7 +77,6 @@ class SinglyLinkedList:
             fast = fast.next.next
         return slow
     
-
 def merge_sorted(l1, l2):
     aux = Node(None)
     tail = aux
@@ -95,8 +92,6 @@ def merge_sorted(l1, l2):
 
     # Liga o restante da lista que ainda não terminou
     tail.next = l1 or l2
-
-    
     elementos = list()
     while aux:
         elementos.append(str(aux.value))

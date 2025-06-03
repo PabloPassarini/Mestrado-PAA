@@ -1,8 +1,6 @@
 def binary_search(L, x, low=0, high=None):
-    if high is None:
-        high = len(L) - 1
-    if low > high:
-        return False
+    if high is None: high = len(L) - 1
+    if low > high: return False
     mid = (low + high) // 2
     if L[mid] == x:
         return True
