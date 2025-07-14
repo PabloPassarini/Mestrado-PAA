@@ -1,143 +1,162 @@
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
-import time
 from collections import deque
 import heapq
 
-# Visualização
-def show_maze(maze, path=None, visited=None, delay=0.2):
-    color_map = {
-        '0': 1,  # branco
-        '1': 0,  # preto
-        's': 0.5,  # cinza
-        'g': 0.75  # cinza claro
-    }
+class MazeSolver:
+    """
+    Classe para resolver um labirinto usando DFS, BFS e A*.
+    """
+    def __init__(self, maze):
+        self.maze = maze
+        self.rows = len(maze)
+        self.cols = len(maze[0])
+        self.start_pos = self._find_char('s')
+        self.goal_pos = self._find_char('g')
 
-    m, n = len(maze), len(maze[0])
-    grid = [[color_map.get(cell, 1) for cell in row] for row in maze]
+    def _find_char(self, char):
+        """Encontra as coordenadas de um caractere no labirinto."""
+        for r in range(self.rows):
+            for c in range(self.cols):
+                if self.maze[r][c] == char:
+                    return (r, c)
+        return None
 
-    fig, ax = plt.subplots()
-    cmap = mcolors.ListedColormap(['black', 'white', 'gray', 'lightgray', 'blue', 'red'])
+    def get_neighbors(self, pos):
+        """Retorna uma lista de vizinhos válidos (não são paredes e estão dentro dos limites)."""
+        r, c = pos
+        neighbors = []
+        # Movimentos possíveis: cima, baixo, esquerda, direita
+        moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        
+        for dr, dc in moves:
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < self.rows and 0 <= nc < self.cols and self.maze[nr][nc] != 1:
+                neighbors.append((nr, nc))
+        return neighbors
 
-    for i in range(m):
-        for j in range(n):
-            if visited and (i, j) in visited:
-                grid[i][j] = 4  # azul para visitado
-            if path and (i, j) in path:
-                grid[i][j] = 5  # vermelho para caminho final
+    def _reconstruct_path(self, came_from, current):
+        """Reconstrói o caminho do início ao fim a partir do dicionário 'came_from'."""
+        path = []
+        while current in came_from:
+            path.append(current)
+            current = came_from[current]
+        path.append(self.start_pos)
+        return path[::-1] # Retorna o caminho na ordem correta (início -> fim)
 
-    ax.imshow(grid, cmap=cmap)
-    ax.set_xticks([])
-    ax.set_yticks([])
-    plt.draw()
-    plt.pause(delay)
-    plt.clf()
+    def solve_dfs(self):
+        """Resolve o labirinto usando Busca em Profundidade (DFS)."""
+        stack = [self.start_pos]
+        visited = {self.start_pos}
+        came_from = {}
 
-# Funções auxiliares
-def parse_maze(maze):
-    start = goal = None
-    for i, row in enumerate(maze):
-        for j, val in enumerate(row):
-            if val == 's':
-                start = (i, j)
-            elif val == 'g':
-                goal = (i, j)
-    return start, goal
+        while stack:
+            current = stack.pop()
 
-def get_neighbors(pos, maze):
-    directions = [(-1,0), (1,0), (0,-1), (0,1)]
-    m, n = len(maze), len(maze[0])
-    for dx, dy in directions:
-        nx, ny = pos[0] + dx, pos[1] + dy
-        if 0 <= nx < m and 0 <= ny < n and maze[nx][ny] != '1':
-            yield (nx, ny)
+            if current == self.goal_pos:
+                return self._reconstruct_path(came_from, current)
 
-def reconstruct_path(came_from, end):
-    path = []
-    while end:
-        path.append(end)
-        end = came_from.get(end)
-    return path[::-1]
+            for neighbor in self.get_neighbors(current):
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    came_from[neighbor] = current
+                    stack.append(neighbor)
+        
+        return None # Caminho não encontrado
 
-# DFS com visualização
-def dfs(maze):
-    start, goal = parse_maze(maze)
-    stack = [start]
-    came_from = {start: None}
-    visited = set()
+    def solve_bfs(self):
+        """Resolve o labirinto usando Busca em Largura (BFS)."""
+        queue = deque([self.start_pos])
+        visited = {self.start_pos}
+        came_from = {}
 
-    while stack:
-        current = stack.pop()
-        if current == goal:
-            show_maze(maze, reconstruct_path(came_from, current), visited)
-            return reconstruct_path(came_from, current)
-        visited.add(current)
-        show_maze(maze, None, visited)
-        for neighbor in get_neighbors(current, maze):
-            if neighbor not in visited and neighbor not in stack:
-                came_from[neighbor] = current
-                stack.append(neighbor)
-    return None
+        while queue:
+            current = queue.popleft()
 
-# BFS com visualização
-def bfs(maze):
-    start, goal = parse_maze(maze)
-    queue = deque([start])
-    came_from = {start: None}
-    visited = set()
+            if current == self.goal_pos:
+                return self._reconstruct_path(came_from, current)
 
-    while queue:
-        current = queue.popleft()
-        if current == goal:
-            show_maze(maze, reconstruct_path(came_from, current), visited)
-            return reconstruct_path(came_from, current)
-        visited.add(current)
-        show_maze(maze, None, visited)
-        for neighbor in get_neighbors(current, maze):
-            if neighbor not in visited and neighbor not in queue:
-                came_from[neighbor] = current
-                queue.append(neighbor)
-    return None
+            for neighbor in self.get_neighbors(current):
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    came_from[neighbor] = current
+                    queue.append(neighbor)
+        
+        return None # Caminho não encontrado
 
-# A* com visualização
-def heuristic(a, b):
-    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+    def _manhattan_distance(self, pos1, pos2):
+        """Calcula a heurística da Distância de Manhattan."""
+        return abs(pos1[0] - pos2[0]) + abs(pos1[1] - pos2[1])
 
-def astar(maze):
-    start, goal = parse_maze(maze)
-    open_set = [(0 + heuristic(start, goal), 0, start)]
-    came_from = {start: None}
-    cost_so_far = {start: 0}
-    visited = set()
+    def solve_a_star(self):
+        """Resolve o labirinto usando o algoritmo A* (A-Estrela)."""
+        # Fila de prioridade: (f_score, g_score, posição)
+        # g_score é usado como desempate para garantir consistência
+        open_set = [(self._manhattan_distance(self.start_pos, self.goal_pos), 0, self.start_pos)]
+        
+        came_from = {}
+        g_score = { (r, c): float('inf') for r in range(self.rows) for c in range(self.cols) }
+        g_score[self.start_pos] = 0
 
-    while open_set:
-        _, cost, current = heapq.heappop(open_set)
-        if current == goal:
-            show_maze(maze, reconstruct_path(came_from, current), visited)
-            return reconstruct_path(came_from, current)
+        while open_set:
+            _, g, current = heapq.heappop(open_set)
 
-        visited.add(current)
-        show_maze(maze, None, visited)
+            if current == self.goal_pos:
+                return self._reconstruct_path(came_from, current)
 
-        for neighbor in get_neighbors(current, maze):
-            new_cost = cost + 1
-            if neighbor not in cost_so_far or new_cost < cost_so_far[neighbor]:
-                cost_so_far[neighbor] = new_cost
-                priority = new_cost + heuristic(neighbor, goal)
-                heapq.heappush(open_set, (priority, new_cost, neighbor))
-                came_from[neighbor] = current
-    return None
+            for neighbor in self.get_neighbors(current):
+                tentative_g_score = g_score[current] + 1 # Custo do movimento é sempre 1
 
-# Exemplo de uso
-maze = [
-    ['s', '0', '1', '0', 'g'],
-    ['1', '0', '1', '0', '1'],
-    ['0', '0', '0', '0', '0'],
-]
+                if tentative_g_score < g_score[neighbor]:
+                    came_from[neighbor] = current
+                    g_score[neighbor] = tentative_g_score
+                    f_score = tentative_g_score + self._manhattan_distance(neighbor, self.goal_pos)
+                    heapq.heappush(open_set, (f_score, tentative_g_score, neighbor))
 
-print("DFS Path:", dfs(maze))
-time.sleep(1)
-print("BFS Path:", bfs(maze))
-time.sleep(1)
-print("A* Path:", astar(maze))
-plt.close()
+        return None # Caminho não encontrado
+
+    def print_solution(self, path, algorithm_name):
+        """Imprime o labirinto com o caminho da solução."""
+        print(f"--- Solução encontrada por: {algorithm_name} ---")
+        if path is None:
+            print("Nenhum caminho foi encontrado.")
+            return
+
+        print(f"Comprimento do caminho: {len(path) - 1} passos")
+        
+        # Cria uma cópia do labirinto para desenhar o caminho
+        solved_maze = [list(row) for row in self.maze]
+        for pos in path:
+            if pos != self.start_pos and pos != self.goal_pos:
+                r, c = pos
+                solved_maze[r][c] = '*' # Marca o caminho com '*'
+        
+        for row in solved_maze:
+            print(" ".join(map(str, row)))
+        print("-" * (len(self.maze[0]) * 2 -1))
+
+# --- Execução Principal ---
+if __name__ == "__main__":
+    # Definição do labirinto
+    # 0: caminho livre, 1: parede, 's': início, 'g': fim
+    labirinto_exemplo = [
+        ['s', 0, 1, 0, 0, 0, 1, 0],
+        [1, 0, 1, 0, 1, 0, 1, 0],
+        [0, 0, 0, 0, 1, 0, 0, 0],
+        [0, 1, 1, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [1, 1, 1, 1, 1, 0, 1, 0],
+        [0, 0, 0, 0, 1, 0, 1, 'g']
+    ]
+
+    solver = MazeSolver(labirinto_exemplo)
+
+    # Resolvendo com DFS
+    path_dfs = solver.solve_dfs()
+    solver.print_solution(path_dfs, "DFS")
+
+    # Resolvendo com BFS
+    path_bfs = solver.solve_bfs()
+    solver.print_solution(path_bfs, "BFS")
+    
+    # Resolvendo com A*
+    path_a_star = solver.solve_a_star()
+    solver.print_solution(path_a_star, "A*")
